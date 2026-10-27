@@ -63,8 +63,10 @@ export const register = async (req, res, next) => {
       notificationChannel,
     } = req.body;
 
+    const cleanEmail = (email || '').trim().toLowerCase();
+
     // Check duplicate email
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ email: cleanEmail });
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -74,19 +76,20 @@ export const register = async (req, res, next) => {
 
     // Role safety: ordinary registration cannot grant reviewer or admin role
     const assignedRole = role === 'requester' ? 'requester' : 'donor';
+    const userBloodGroup = assignedRole === 'requester' ? (bloodGroup || 'Not Specified') : (bloodGroup || 'O+');
 
     // Format location coordinates if provided (default Pune if omitted)
-    const lat = latitude !== undefined ? parseFloat(latitude) : 18.5204;
-    const lng = longitude !== undefined ? parseFloat(longitude) : 73.8567;
+    const lat = latitude !== undefined && !isNaN(parseFloat(latitude)) ? parseFloat(latitude) : 18.5204;
+    const lng = longitude !== undefined && !isNaN(parseFloat(longitude)) ? parseFloat(longitude) : 73.8567;
 
     const user = await User.create({
-      name,
-      email: email.toLowerCase(),
+      name: name.trim(),
+      email: cleanEmail,
       password,
-      phone,
+      phone: phone.trim(),
       role: assignedRole,
-      bloodGroup,
-      city,
+      bloodGroup: userBloodGroup,
+      city: (city || 'Pune').trim(),
       location: {
         type: 'Point',
         coordinates: [lng, lat],
@@ -119,8 +122,10 @@ export const login = async (req, res, next) => {
       });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+
     // Explicitly select password field
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const user = await User.findOne({ email: cleanEmail }).select('+password');
     if (!user) {
       return res.status(401).json({
         success: false,

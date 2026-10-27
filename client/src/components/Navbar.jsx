@@ -48,16 +48,18 @@ export const Navbar = () => {
             Emergency Feed
           </Link>
 
+          {/* "+ Request Blood" is prominently available for all visitors and users */}
+          <Link
+            to="/requests/create"
+            state={!isAuthenticated ? { from: { pathname: '/requests/create' }, intent: 'request_blood' } : undefined}
+            className="btn btn-primary btn-sm"
+            style={{ padding: '0.4rem 0.85rem' }}
+          >
+            <PlusCircle size={15} /> Request Blood
+          </Link>
+
           {isAuthenticated && (
             <>
-              <Link
-                to="/requests/create"
-                className="btn btn-primary btn-sm"
-                style={{ padding: '0.4rem 0.85rem' }}
-              >
-                <PlusCircle size={15} /> Request Blood
-              </Link>
-
               <Link
                 to="/my-requests"
                 className={`nav-link ${isActive('/my-requests') ? 'active' : ''}`}
@@ -88,7 +90,7 @@ export const Navbar = () => {
           )}
 
           {/* Right Action Area */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '0.5rem' }}>
             {isAuthenticated ? (
               <>
                 {/* Notifications Bell */}
@@ -227,8 +229,12 @@ export const Navbar = () => {
                 <Link to="/login" className="btn btn-secondary btn-sm">
                   Log In
                 </Link>
-                <Link to="/register" className="btn btn-primary btn-sm">
-                  Register as Donor
+                <Link
+                  to="/register?role=requester"
+                  state={{ from: { pathname: '/requests/create' }, intent: 'request_blood' }}
+                  className="btn btn-outline btn-sm"
+                >
+                  Register
                 </Link>
               </>
             )}

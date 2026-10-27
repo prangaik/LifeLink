@@ -81,11 +81,31 @@ export const Home = () => {
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link to="/requests/create" className="btn btn-primary" style={{ padding: '0.85rem 1.75rem', fontSize: '1rem' }}>
+          <Link
+            to="/requests/create"
+            state={{ from: { pathname: '/requests/create' }, intent: 'request_blood' }}
+            className="btn btn-primary"
+            style={{ padding: '0.85rem 1.75rem', fontSize: '1rem' }}
+          >
             <Heart size={18} /> Request Emergency Blood
           </Link>
-          <Link to="/register" className="btn btn-secondary" style={{ padding: '0.85rem 1.75rem', fontSize: '1rem' }}>
+          <Link
+            to="/register?role=donor"
+            className="btn btn-secondary"
+            style={{ padding: '0.85rem 1.75rem', fontSize: '1rem' }}
+          >
             Register as Volunteer Donor <ArrowRight size={16} />
+          </Link>
+        </div>
+
+        <div style={{ marginTop: '1.25rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+          Need blood for a patient?{' '}
+          <Link
+            to="/register?role=requester"
+            state={{ from: { pathname: '/requests/create' }, intent: 'request_blood' }}
+            style={{ color: '#38bdf8', fontWeight: 600, textDecoration: 'underline' }}
+          >
+            Create a Requester Account
           </Link>
         </div>
       </section>

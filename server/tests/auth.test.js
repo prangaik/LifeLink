@@ -94,4 +94,38 @@ describe('Auth Workflow & Access Control Tests', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.user.email).toBe(testUser.email);
   });
+
+  test('POST /api/auth/register allows a requester to register without donor blood group', async () => {
+    const requesterUser = {
+      name: 'Priya Requester',
+      email: 'priya.requester@example.com',
+      password: 'Password@123',
+      phone: '+91 98330 11223',
+      city: 'Pune',
+      role: 'requester',
+      // No bloodGroup provided
+    };
+
+    const res = await request(app).post('/api/auth/register').send(requesterUser);
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.user.role).toBe('requester');
+    expect(res.body.user.bloodGroup).toBe('Not Specified');
+  });
+
+  test('POST /api/auth/register rejects donor registration if bloodGroup is missing', async () => {
+    const incompleteDonor = {
+      name: 'Incomplete Donor',
+      email: 'incomplete@example.com',
+      password: 'Password@123',
+      phone: '+91 98330 44556',
+      city: 'Pune',
+      role: 'donor',
+      // Missing bloodGroup
+    };
+
+    const res = await request(app).post('/api/auth/register').send(incompleteDonor);
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
 });

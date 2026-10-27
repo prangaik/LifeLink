@@ -14,8 +14,13 @@ const registerValidation = [
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
   body('phone').trim().notEmpty().withMessage('Phone number is required'),
   body('bloodGroup')
+    .if(body('role').equals('donor'))
     .isIn(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
-    .withMessage('Valid blood group is required'),
+    .withMessage('Valid blood group is required for volunteer donors'),
+  body('bloodGroup')
+    .optional()
+    .isIn(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Not Specified'])
+    .withMessage('Invalid blood group specification'),
   body('city').trim().notEmpty().withMessage('City is required'),
   validateRequest,
 ];

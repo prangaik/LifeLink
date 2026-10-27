@@ -193,9 +193,9 @@ Now open your browser and navigate to:
 
 ---
 
-## 6. Pre-Configured Demo Accounts for Evaluation
+## 6. Pre-Configured Accounts for Demonstration & Evaluation
 
-For rapid evaluation, the login page (`/login`) includes **1-Click Demo Buttons**:
+The database is pre-seeded with test accounts representing the three distinct roles:
 
 | Role | Email | Password | Purpose |
 |---|---|---|---|
@@ -215,9 +215,11 @@ LifeLink includes automated backend integration tests using **Jest** and **Super
 npm test
 ```
 
-### Test Coverage Highlights (16/16 Passed):
+### Test Coverage Highlights (18/18 Passed):
 - `tests/auth.test.js`:
   - User registration with valid data and JWT generation.
+  - Streamlined Requester registration without personal donor blood group.
+  - Rejection of donor registration if blood group is omitted.
   - Duplicate account prevention (409 Conflict).
   - Client privilege escalation prevention (ordinary users cannot self-assign `reviewer` or `admin`).
   - Login credential verification and invalid password rejection (401).

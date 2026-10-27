@@ -16,7 +16,17 @@ export const ProtectedRoute = ({ children, requireReviewer = false }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const isRequestBlood = location.pathname === '/requests/create';
+    return (
+      <Navigate
+        to="/login"
+        state={{
+          from: location,
+          intent: isRequestBlood ? 'request_blood' : undefined,
+        }}
+        replace
+      />
+    );
   }
 
   if (requireReviewer && !isReviewer) {
