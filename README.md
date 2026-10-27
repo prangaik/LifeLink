@@ -331,3 +331,7 @@ For viva or project evaluation, follow this 5-stage demonstration:
 | **Reviewer Portal & Auditing** | **REAL** | Role-protected admin endpoints with persistent `ReviewLog` collection. |
 | **In-App Notifications** | **REAL** | Persistent `Notification` collection with real-time 15s polling and unread badge counters. |
 | **WhatsApp Dispatch** | **SIMULATED** | Clean provider abstraction that logs formatted WhatsApp payloads to the server console with safe educational disclaimers. Avoids incurring paid Twilio/Meta WhatsApp API charges. |
+
+
+DEMO VIDEO:-
+https://drive.google.com/file/d/12aiJoVNT7Bx6zIKy9_Mh3bSszy4GwfRN/view?usp=sharing
