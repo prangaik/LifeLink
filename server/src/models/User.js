@@ -42,6 +42,11 @@ const userSchema = new mongoose.Schema(
         return this.role === 'donor';
       },
     },
+    state: {
+      type: String,
+      default: 'Maharashtra',
+      trim: true,
+    },
     city: {
       type: String,
       required: [true, 'City is required'],

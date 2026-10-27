@@ -1,31 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusCircle, MapPin, AlertTriangle, ShieldCheck, Flame } from 'lucide-react';
+import { PlusCircle, MapPin, AlertTriangle, ShieldCheck, Flame, CheckCircle } from 'lucide-react';
 import { api } from '../api/client';
 import { ALL_BLOOD_GROUPS } from '../utils/bloodGroups';
 import { useAuth } from '../context/AuthContext';
-
-const HOSPITAL_PRESETS = [
-  { name: 'Jehangir Hospital, Pune', city: 'Pune', lat: 18.5305, lng: 73.8778 },
-  { name: 'Ruby Hall Clinic, Pune', city: 'Pune', lat: 18.5342, lng: 73.8812 },
-  { name: 'Sassoon General Hospital, Pune', city: 'Pune', lat: 18.5308, lng: 73.8743 },
-  { name: 'KEM Hospital, Pune', city: 'Pune', lat: 18.5198, lng: 73.8645 },
-  { name: 'Sahyadri Super Speciality Hospital, Deccan', city: 'Pune', lat: 18.5144, lng: 73.8412 },
-  { name: 'Deenanath Mangeshkar Hospital, Erandwane', city: 'Pune', lat: 18.5024, lng: 73.8276 },
-];
+import { INDIA_STATES_AND_UTS, INDIA_CITIES_BY_STATE } from '../data/indiaLocations';
 
 export const CreateRequest = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [selectedState, setSelectedState] = useState('Maharashtra');
   const [formData, setFormData] = useState({
     patientName: '',
     bloodGroup: 'B+',
     unitsRequired: 2,
-    hospitalName: 'Jehangir Hospital, Pune',
+    hospitalName: '',
     city: 'Pune',
-    latitude: 18.5305,
-    longitude: 73.8778,
+    latitude: 18.5204,
+    longitude: 73.8567,
     urgency: 'high',
     searchRadiusKm: 25,
     contactPhone: user?.phone || '',
@@ -36,6 +29,12 @@ export const CreateRequest = () => {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  // Derive city list for the selected state
+  const citiesForState = useMemo(() => {
+    return INDIA_CITIES_BY_STATE[selectedState] || [];
+  }, [selectedState]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -45,14 +44,33 @@ export const CreateRequest = () => {
     }));
   };
 
-  const handleSelectHospitalPreset = (preset) => {
-    setFormData((prev) => ({
-      ...prev,
-      hospitalName: preset.name,
-      city: preset.city,
-      latitude: preset.lat,
-      longitude: preset.lng,
-    }));
+  const handleStateChange = (e) => {
+    const newState = e.target.value;
+    setSelectedState(newState);
+    const cities = INDIA_CITIES_BY_STATE[newState] || [];
+    if (cities.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        city: cities[0].name,
+        latitude: cities[0].lat,
+        longitude: cities[0].lng,
+      }));
+    }
+  };
+
+  const handleCityChange = (e) => {
+    const cityName = e.target.value;
+    const cityObj = citiesForState.find((c) => c.name === cityName);
+    if (cityObj) {
+      setFormData((prev) => ({
+        ...prev,
+        city: cityObj.name,
+        latitude: cityObj.lat,
+        longitude: cityObj.lng,
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, city: cityName }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -63,11 +81,16 @@ export const CreateRequest = () => {
       return setError('Please provide patient initials and hospital name.');
     }
 
+    if (!formData.latitude || !formData.longitude) {
+      return setError('Please select a valid city to set the hospital location.');
+    }
+
     setLoading(true);
     try {
       const res = await api.requests.create(formData);
       if (res.success && res.request) {
-        navigate(`/requests/${res.request._id}`);
+        setSuccess(true);
+        setTimeout(() => navigate(`/requests/${res.request._id}`), 1500);
       }
     } catch (err) {
       setError(err.message || 'Failed to create blood request.');
@@ -76,19 +99,58 @@ export const CreateRequest = () => {
     }
   };
 
-  return (
-    <div style={{ maxWidth: '720px', margin: '1rem auto' }}>
-      <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+  if (success) {
+    return (
+      <div style={{ maxWidth: '480px', margin: '4rem auto', textAlign: 'center' }}>
+        <div className="card" style={{ padding: '3rem 2rem' }}>
           <div
             style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '10px',
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'rgba(16, 185, 129, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.25rem',
+            }}
+          >
+            <CheckCircle size={32} color="var(--success)" />
+          </div>
+          <h2 style={{ marginBottom: '0.5rem' }}>Request Published!</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            Matching donors are being notified. Redirecting to your request…
+          </p>
+          <div className="loading-spinner" style={{ margin: '1.5rem auto 0' }} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: '760px', margin: '1rem auto' }}>
+      <div className="card">
+        {/* Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            marginBottom: '1.75rem',
+            borderBottom: '1px solid var(--border-color)',
+            paddingBottom: '1.25rem',
+          }}
+        >
+          <div
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '12px',
               background: 'var(--primary-subtle)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
             <PlusCircle size={22} color="var(--primary)" />
@@ -96,11 +158,12 @@ export const CreateRequest = () => {
           <div>
             <h2 style={{ fontSize: '1.35rem' }}>Create Emergency Blood Request</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              Coordinate with registered volunteer donors in your hospital's geographic vicinity
+              Geospatial donor matching runs automatically after submission
             </p>
           </div>
         </div>
 
+        {/* Error Message */}
         {error && (
           <div
             style={{
@@ -111,38 +174,18 @@ export const CreateRequest = () => {
               color: '#f87171',
               fontSize: '0.85rem',
               marginBottom: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
             }}
           >
+            <AlertTriangle size={15} />
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* Quick Hospital Presets for Demonstration */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <span style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>
-              Quick Hospital Presets (Pune Evaluation Area):
-            </span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-              {HOSPITAL_PRESETS.map((hosp) => (
-                <button
-                  key={hosp.name}
-                  type="button"
-                  onClick={() => handleSelectHospitalPreset(hosp)}
-                  className="btn btn-secondary btn-sm"
-                  style={{
-                    fontSize: '0.75rem',
-                    padding: '0.3rem 0.6rem',
-                    background: formData.hospitalName === hosp.name ? 'var(--primary-subtle)' : undefined,
-                    borderColor: formData.hospitalName === hosp.name ? 'var(--primary)' : undefined,
-                  }}
-                >
-                  {hosp.name.split(',')[0]}
-                </button>
-              ))}
-            </div>
-          </div>
-
+          {/* Patient & Blood */}
           <div className="grid-2">
             <div className="form-group">
               <label className="form-label">Patient Identifier / Initials</label>
@@ -151,11 +194,11 @@ export const CreateRequest = () => {
                 name="patientName"
                 required
                 className="form-input"
-                placeholder="e.g. P. Kulkarni (Keep minimal for privacy)"
+                placeholder="e.g. P. Kulkarni"
                 value={formData.patientName}
                 onChange={handleChange}
               />
-              <span className="form-help">Minimal non-sensitive identifier</span>
+              <span className="form-help">Keep minimal for patient privacy</span>
             </div>
 
             <div className="form-group">
@@ -175,6 +218,7 @@ export const CreateRequest = () => {
             </div>
           </div>
 
+          {/* Units & Urgency */}
           <div className="grid-2">
             <div className="form-group">
               <label className="form-label">Units Required (Pints)</label>
@@ -198,86 +242,110 @@ export const CreateRequest = () => {
                 value={formData.urgency}
                 onChange={handleChange}
               >
-                <option value="critical">Critical (Immediate surgical requirement)</option>
-                <option value="high">High (Needed within 6-12 hours)</option>
-                <option value="moderate">Moderate (Scheduled / elective procedure)</option>
+                <option value="critical">🔴 Critical — Immediate surgical requirement</option>
+                <option value="high">🟠 High — Needed within 6–12 hours</option>
+                <option value="moderate">🟡 Moderate — Scheduled / elective procedure</option>
               </select>
             </div>
           </div>
 
+          {/* Hospital Name */}
+          <div className="form-group">
+            <label className="form-label">Hospital / Blood Bank Name</label>
+            <input
+              type="text"
+              name="hospitalName"
+              required
+              className="form-input"
+              placeholder="e.g. Jehangir Hospital, Pune"
+              value={formData.hospitalName}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Location: State + City */}
           <div className="grid-2">
             <div className="form-group">
-              <label className="form-label">Hospital / Blood Bank Name</label>
-              <input
-                type="text"
-                name="hospitalName"
-                required
-                className="form-input"
-                placeholder="Hospital Name"
-                value={formData.hospitalName}
-                onChange={handleChange}
-              />
+              <label className="form-label">
+                <MapPin size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                State / Union Territory
+              </label>
+              <select className="form-select" value={selectedState} onChange={handleStateChange}>
+                {INDIA_STATES_AND_UTS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">
               <label className="form-label">City</label>
-              <input
-                type="text"
-                name="city"
-                required
-                className="form-input"
-                placeholder="City"
-                value={formData.city}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          {/* Location Coordinates for 2dsphere indexing */}
-          <div className="grid-2">
-            <div className="form-group">
-              <label className="form-label">Hospital Latitude</label>
-              <input
-                type="number"
-                step="0.0001"
-                required
-                className="form-input"
-                value={formData.latitude}
-                onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Hospital Longitude</label>
-              <input
-                type="number"
-                step="0.0001"
-                required
-                className="form-input"
-                value={formData.longitude}
-                onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) })}
-              />
-            </div>
-          </div>
-
-          <div className="grid-2">
-            <div className="form-group">
-              <label className="form-label">Search Radius (Kilometers)</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {citiesForState.length > 0 ? (
+                <select className="form-select" value={formData.city} onChange={handleCityChange}>
+                  {citiesForState.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
                 <input
-                  type="range"
-                  name="searchRadiusKm"
-                  min={5}
-                  max={50}
-                  step={5}
-                  value={formData.searchRadiusKm}
+                  type="text"
+                  name="city"
+                  className="form-input"
+                  placeholder="Enter city name"
+                  value={formData.city}
                   onChange={handleChange}
-                  style={{ flex: 1, accentColor: 'var(--primary)' }}
                 />
-                <span style={{ fontWeight: 700, width: '55px', textAlign: 'right' }}>
-                  {formData.searchRadiusKm} km
-                </span>
-              </div>
+              )}
+            </div>
+          </div>
+
+          {/* Coordinates (read-only display) */}
+          {formData.latitude && formData.longitude && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.6rem 0.9rem',
+                background: 'rgba(56, 189, 248, 0.06)',
+                border: '1px solid rgba(56, 189, 248, 0.2)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.8rem',
+                color: '#38bdf8',
+                marginBottom: '1.25rem',
+              }}
+            >
+              <ShieldCheck size={14} />
+              <span>
+                Hospital location set: <strong>{formData.city}</strong> (
+                {formData.latitude.toFixed(4)}°N, {formData.longitude.toFixed(4)}°E) — used for
+                geospatial 2dsphere donor matching
+              </span>
+            </div>
+          )}
+
+          {/* Search Radius & Expiry */}
+          <div className="grid-2">
+            <div className="form-group">
+              <label className="form-label">
+                Search Radius: <strong>{formData.searchRadiusKm} km</strong>
+              </label>
+              <input
+                type="range"
+                name="searchRadiusKm"
+                min={5}
+                max={100}
+                step={5}
+                value={formData.searchRadiusKm}
+                onChange={handleChange}
+                style={{ width: '100%', accentColor: 'var(--primary)', marginTop: '0.4rem' }}
+              />
+              <span className="form-help">
+                Donors within this radius will be invited automatically
+              </span>
             </div>
 
             <div className="form-group">
@@ -288,6 +356,7 @@ export const CreateRequest = () => {
                 value={formData.expiryHours}
                 onChange={handleChange}
               >
+                <option value={6}>6 Hours</option>
                 <option value={12}>12 Hours</option>
                 <option value={24}>24 Hours</option>
                 <option value={48}>48 Hours</option>
@@ -296,6 +365,7 @@ export const CreateRequest = () => {
             </div>
           </div>
 
+          {/* Contact Phone */}
           <div className="form-group">
             <label className="form-label">Direct Emergency Contact Phone</label>
             <input
@@ -307,8 +377,12 @@ export const CreateRequest = () => {
               value={formData.contactPhone}
               onChange={handleChange}
             />
+            <span className="form-help">
+              Shared with matched donors only — not shown in public listing
+            </span>
           </div>
 
+          {/* Notes */}
           <div className="form-group">
             <label className="form-label">Additional Hospital Case Notes (Optional)</label>
             <textarea
@@ -320,14 +394,15 @@ export const CreateRequest = () => {
             />
           </div>
 
+          {/* Auto-match toggle */}
           <label
             style={{
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.6rem',
+              alignItems: 'flex-start',
+              gap: '0.75rem',
               fontSize: '0.85rem',
               color: '#cbd5e1',
-              margin: '1.25rem 0',
+              margin: '1rem 0 1.5rem',
               cursor: 'pointer',
             }}
           >
@@ -336,21 +411,33 @@ export const CreateRequest = () => {
               name="autoMatch"
               checked={formData.autoMatch}
               onChange={handleChange}
+              style={{ marginTop: '2px', accentColor: 'var(--primary)' }}
             />
             <span>
-              <strong>Auto-Discover & Invite Matched Donors:</strong> Automatically run geospatial 2dsphere
-              discovery and alert matching volunteers within {formData.searchRadiusKm} km immediately upon creation.
+              <strong style={{ color: '#f1f5f9' }}>Auto-Discover &amp; Invite Matched Donors:</strong>{' '}
+              Immediately run geospatial 2dsphere discovery and alert matching volunteers within{' '}
+              {formData.searchRadiusKm} km upon creation.
             </span>
           </label>
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
             className="btn btn-primary"
-            style={{ width: '100%', padding: '0.8rem', fontSize: '1rem' }}
+            style={{
+              width: '100%',
+              padding: '0.9rem',
+              fontSize: '1rem',
+              gap: '0.6rem',
+            }}
           >
-            {loading ? <span className="loading-spinner" style={{ width: '1.2rem', height: '1.2rem' }}></span> : <Flame size={18} />}
-            <span>Publish Blood Request & Trigger Matching</span>
+            {loading ? (
+              <span className="loading-spinner" style={{ width: '1.2rem', height: '1.2rem' }} />
+            ) : (
+              <Flame size={18} />
+            )}
+            <span>{loading ? 'Publishing Request…' : 'Publish Blood Request & Trigger Matching'}</span>
           </button>
         </form>
       </div>

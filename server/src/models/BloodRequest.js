@@ -33,10 +33,20 @@ const bloodRequestSchema = new mongoose.Schema(
       trim: true,
       maxlength: 120,
     },
+    state: {
+      type: String,
+      default: 'Maharashtra',
+      trim: true,
+    },
     city: {
       type: String,
       required: [true, 'City is required'],
       trim: true,
+    },
+    hospitalAddress: {
+      type: String,
+      trim: true,
+      maxlength: 200,
     },
     // Hospital / Emergency location coordinates [longitude, latitude]
     location: {

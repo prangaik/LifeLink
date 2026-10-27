@@ -1,17 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { UserPlus, Shield, MapPin, AlertCircle, CheckCircle2, Heart, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ALL_BLOOD_GROUPS } from '../utils/bloodGroups';
+import { INDIA_STATES_AND_UTS, INDIA_CITIES_BY_STATE } from '../data/indiaLocations';
 
-const PUNE_PRESETS = [
-  { label: 'Shivajinagar / Sassoon', lat: 18.5308, lng: 73.8743 },
-  { label: 'Ruby Hall Clinic Area', lat: 18.5342, lng: 73.8812 },
-  { label: 'Deccan / FC Road', lat: 18.5144, lng: 73.8412 },
-  { label: 'Kothrud / Karve Road', lat: 18.5074, lng: 73.8077 },
-  { label: 'Aundh / Baner', lat: 18.5582, lng: 73.8012 },
-  { label: 'Swargate / Hadapsar', lat: 18.5018, lng: 73.8636 },
-];
+// Default state/city for initial form load
+const DEFAULT_STATE = 'Maharashtra';
+const DEFAULT_CITY = INDIA_CITIES_BY_STATE['Maharashtra'][1]; // Pune
 
 export const Register = () => {
   const [searchParams] = useSearchParams();
@@ -26,21 +22,53 @@ export const Register = () => {
     initialRoleParam === 'requester';
 
   const [role, setRole] = useState(isFromRequestBlood ? 'requester' : 'donor');
+  const [selectedState, setSelectedState] = useState(DEFAULT_STATE);
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     phone: '',
-    city: 'Pune',
+    city: DEFAULT_CITY.name,
     // Donor-specific fields
     bloodGroup: 'O+',
-    latitude: 18.5308,
-    longitude: 73.8743,
+    latitude: DEFAULT_CITY.lat,
+    longitude: DEFAULT_CITY.lng,
     isAvailable: true,
     notificationConsent: true,
     notificationChannel: 'in-app',
   });
+
+  const citiesForState = useMemo(() => INDIA_CITIES_BY_STATE[selectedState] || [], [selectedState]);
+
+  const handleStateChange = (e) => {
+    const newState = e.target.value;
+    setSelectedState(newState);
+    const cities = INDIA_CITIES_BY_STATE[newState] || [];
+    if (cities.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        city: cities[0].name,
+        latitude: cities[0].lat,
+        longitude: cities[0].lng,
+      }));
+    }
+  };
+
+  const handleCityChange = (e) => {
+    const cityName = e.target.value;
+    const cityObj = citiesForState.find((c) => c.name === cityName);
+    if (cityObj) {
+      setFormData((prev) => ({
+        ...prev,
+        city: cityObj.name,
+        latitude: cityObj.lat,
+        longitude: cityObj.lng,
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, city: cityName }));
+    }
+  };
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -58,14 +86,6 @@ export const Register = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
-    }));
-  };
-
-  const handleSelectPreset = (preset) => {
-    setFormData((prev) => ({
-      ...prev,
-      latitude: preset.lat,
-      longitude: preset.lng,
     }));
   };
 
@@ -343,17 +363,34 @@ export const Register = () => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">City</label>
-            <input
-              type="text"
-              name="city"
-              required
-              className="form-input"
-              placeholder="e.g. Pune"
-              value={formData.city}
-              onChange={handleChange}
-            />
+          <div className="grid-2">
+            <div className="form-group">
+              <label className="form-label">State / UT</label>
+              <select className="form-select" value={selectedState} onChange={handleStateChange}>
+                {INDIA_STATES_AND_UTS.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">City</label>
+              {citiesForState.length > 0 ? (
+                <select className="form-select" value={formData.city} onChange={handleCityChange}>
+                  {citiesForState.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  name="city"
+                  className="form-input"
+                  placeholder="Enter city name"
+                  value={formData.city}
+                  onChange={handleChange}
+                />
+              )}
+            </div>
           </div>
 
           {/* Donor-Specific Fields */}
@@ -375,57 +412,36 @@ export const Register = () => {
                 </select>
               </div>
 
-              {/* Approximate Location for Geospatial 2dsphere Matching */}
+              {/* Location: set via state/city selection above; show confirmation + GPS override */}
               <div className="form-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label className="form-label">Approximate Location Coordinates</label>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.6rem 0.9rem',
+                    background: 'rgba(56, 189, 248, 0.06)',
+                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '0.8rem',
+                    color: '#38bdf8',
+                  }}
+                >
+                  <span>
+                    <MapPin size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                    <strong>Donor location:</strong> {formData.city} ({formData.latitude?.toFixed(4)}°N,{' '}
+                    {formData.longitude?.toFixed(4)}°E)
+                  </span>
                   <button
                     type="button"
                     onClick={handleUseCurrentLocation}
                     className="btn btn-secondary btn-sm"
-                    style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
+                    style={{ padding: '0.2rem 0.55rem', fontSize: '0.75rem' }}
                   >
-                    <MapPin size={12} /> Detect GPS
+                    <MapPin size={11} /> Use GPS
                   </button>
                 </div>
-
-                <div className="grid-2" style={{ gap: '0.75rem', marginBottom: '0.5rem' }}>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    className="form-input"
-                    placeholder="Latitude"
-                    value={formData.latitude}
-                    onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) })}
-                  />
-                  <input
-                    type="number"
-                    step="0.0001"
-                    className="form-input"
-                    placeholder="Longitude"
-                    value={formData.longitude}
-                    onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) })}
-                  />
-                </div>
-
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginRight: '0.5rem' }}>
-                    Quick Pune presets:
-                  </span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.35rem' }}>
-                    {PUNE_PRESETS.map((preset) => (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => handleSelectPreset(preset)}
-                        className="btn btn-secondary btn-sm"
-                        style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <span className="form-help">Location is used for geospatial donor matching only. Your exact GPS is never shared.</span>
               </div>
 
               {/* Notification Preferences & Consent */}
