@@ -1,7 +1,13 @@
 const rawApiUrl = import.meta.env.VITE_API_URL;
-const BASE_URL = rawApiUrl
-  ? (rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/+$/, '')}/api`)
-  : '/api';
+const PRODUCTION_BACKEND_API = 'https://lifelink-hc9o.onrender.com/api';
+
+const isCustomValidUrl = rawApiUrl && !rawApiUrl.includes('your-render-backend-name');
+
+const BASE_URL = import.meta.env.DEV
+  ? '/api'
+  : (isCustomValidUrl
+      ? (rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/+$/, '')}/api`)
+      : PRODUCTION_BACKEND_API);
 
 /**
  * Universal fetch wrapper for LifeLink API
