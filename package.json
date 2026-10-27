@@ -1,0 +1,12 @@
+{
+  "name": "lifelink-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LifeLink - Emergency Blood Donor Network (Endterm Project)",
+  "scripts": {
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "test": "npm --prefix server test",
+    "seed": "npm --prefix server run seed"
+  }
+}
