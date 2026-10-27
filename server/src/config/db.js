@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
 let mongoMemoryServer = null;
 
@@ -24,6 +23,7 @@ export const connectDB = async () => {
   // Development / Test in-memory fallback when no URI is configured
   try {
     console.log('🚀 [DB] No MONGODB_URI configured. Starting local MongoMemoryServer for development...');
+    const { MongoMemoryServer } = await import('mongodb-memory-server');
     mongoMemoryServer = await MongoMemoryServer.create();
     const memoryUri = mongoMemoryServer.getUri();
     await mongoose.connect(memoryUri, { dbName: 'lifelink' });
